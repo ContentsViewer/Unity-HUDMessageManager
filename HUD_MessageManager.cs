@@ -56,12 +56,20 @@ using UnityEngine.UI;
 
 public class HUD_MessageManager : MonoBehaviour
 {
-    public static HUD_MessageManager instance = null;
+    public static HUD_MessageManager Instance { get; private set; }
 
     //===外部パラメータ(Inspector表示)===================================================
     public float defaultEntranceTime = 1.0f;
     public float defaultDisplayTime = 3.0f;
     public float defaultExitTime = 1.0f;
+
+    public GameObject textBoxObject;
+    public GameObject centerTextObject;
+    public GameObject topTextObject;
+    public GameObject bottomTextObject;
+    public GameObject topLeftTextObject;
+    public GameObject bottomRightTextObject;
+    public GameObject textBoxTextObject;
 
     //===外部パラメータ==================================================================
 
@@ -76,14 +84,14 @@ public class HUD_MessageManager : MonoBehaviour
     //
     //      CENTER:
     //          画面中央
-    public enum MESSAGE_TYPE
+    public enum MessageType
     {
-        BOX,
-        CENTER,
-        TOP,
-        BOTTOM,
-        TOP_LEFT,
-        BOTTOM_RIGHT
+        Box,
+        Center,
+        Top,
+        Bottom,
+        TopLeft,
+        BottomRight
     }
 
     //列挙: public enum MESSAGE_ENTRANCE
@@ -97,10 +105,10 @@ public class HUD_MessageManager : MonoBehaviour
     //
     //      FADE:
     //          徐々に表示
-    public enum MESSAGE_ENTRANCE
+    public enum MessageEntrance
     {
-        APPEAR,
-        FADE
+        Appear,
+        Fade
     }
 
     //列挙: public enum MESSAGE_EXIT
@@ -114,10 +122,10 @@ public class HUD_MessageManager : MonoBehaviour
     //
     //      FADE:
     //          徐々に消す
-    public enum MESSAGE_EXIT
+    public enum MessageExit
     {
-        DISAPPEAR,
-        FADE
+        Disappear,
+        Fade
     }
 
     //列挙: public enum MESSAGE_MODE
@@ -132,17 +140,17 @@ public class HUD_MessageManager : MonoBehaviour
     //      TIMER:
     //          タイマーモード
     //          指定した時間がたつとメッセージを自動で消します
-    public enum MESSAGE_MODE
+    public enum MessageMode
     {
-        NORMAL,
-        TIMER
+        Normal,
+        Timer
     }
 
-    public enum ID_TYPE
+    public enum IdType
     {
-        NORMAL,
-        KEEP_ID_BUT_DELETE_ON_LOAD,
-        DONT_DELETE_ON_LOAD
+        Normal,
+        keepIdButDeleteOnLoad,
+        DontDeleteOnLoad
     }
 
     //クラス: public class Param
@@ -173,13 +181,13 @@ public class HUD_MessageManager : MonoBehaviour
     //          このクラスを複製したオブジェクトを返します
     public class Param
     {
-        public MESSAGE_ENTRANCE entranceAnimation = MESSAGE_ENTRANCE.APPEAR;
-        public MESSAGE_EXIT exitAnimation = MESSAGE_EXIT.DISAPPEAR;
+        public MessageEntrance entranceAnimation = MessageEntrance.Appear;
+        public MessageExit exitAnimation = MessageExit.Disappear;
         public float displayTime = 2.0f;
         public float exitTime = 1.0f;
         public float entranceTime = 1.0f;
         public string color = "000000";
-        public ID_TYPE idType = ID_TYPE.NORMAL;
+        public IdType idType = IdType.Normal;
 
         public object Clone()
         {
@@ -202,12 +210,12 @@ public class HUD_MessageManager : MonoBehaviour
     {
         public bool activated = false;
         public bool isPlaying = false;
-        public MESSAGE_STATE messageState = MESSAGE_STATE.READY;
+        public MessageState messageState = MessageState.Ready;
         public string text;
         public float transparency = 255.0f;
         public float messageStartTime;
-        public MESSAGE_MODE messageMode = MESSAGE_MODE.NORMAL;
-        public MESSAGE_TYPE messageType = MESSAGE_TYPE.CENTER;
+        public MessageMode messageMode = MessageMode.Normal;
+        public MessageType messageType = MessageType.Center;
     }
 
     //各messageElementが持つ変数群
@@ -236,26 +244,20 @@ public class HUD_MessageManager : MonoBehaviour
     //
     //      END:
     //          メッセージ終了
-    private enum MESSAGE_STATE
+    private enum MessageState
     {
-        READY,
-        START,
-        SHOWING,
-        TO_END,
-        END
+        Ready,
+        Start,
+        Showing,
+        ToEnd,
+        End
     }
 
     //各メッセージを格納したリスト
     private List<MessageListElement> messageList = new List<MessageListElement>();
 
     //===キャッシュ=============================================================================
-    GameObject textBoxObj;
-    GameObject centerTextObj;
-    GameObject topTextObj;
-    GameObject bottomTextObj;
-    GameObject topLeftTextObj;
-    GameObject bottomRightTextObj;
-    GameObject textBoxTextObj;
+    
     Text centerTextText;
     Text textBoxTextText;
     Text topTextText;
@@ -269,7 +271,7 @@ public class HUD_MessageManager : MonoBehaviour
         //シーンが読まれるときdontDeleteOnLoadがfalseのmessageは破棄
         foreach (var message in messageList)
         {
-            if (message.param.idType != ID_TYPE.DONT_DELETE_ON_LOAD)
+            if (message.param.idType != IdType.DontDeleteOnLoad)
             {
                 message.paramPrivate.activated = false;
             }
@@ -280,90 +282,65 @@ public class HUD_MessageManager : MonoBehaviour
     void Awake()
     {
         //各オブジェクト取得
-        Transform trfm = transform.Find("CenterText");
-        if (trfm)
+        //Transform trfm = transform.Find("CenterText");
+
+        if (centerTextObject != null && (centerTextText = centerTextObject.GetComponent<Text>()) != null)
         {
-            centerTextObj = trfm.gameObject;
-            centerTextText = centerTextObj.GetComponent<Text>();
         }
         else
         {
-            Debug.LogWarning("[HUD_MessageManager.Awake] GameObject'CenterText'が見つかりません");
+            Debug.LogWarning("HUD_MessageManager.Awake >> CenterTextに関する情報を取得できません. これに関する機能は使用できません.");
+
         }
 
-        trfm = transform.Find("TextBox");
-        if (trfm)
+        if (textBoxObject != null && textBoxTextObject != null && (textBoxTextText = textBoxTextObject.GetComponent<Text>()) != null)
         {
-            textBoxObj = trfm.gameObject;
         }
         else
         {
-            Debug.LogWarning("[HUD_MessageManager.Awake] GameObject'TextBox'が見つかりません");
+            Debug.LogWarning("HUD_MessageManager.Awake >> TextBoxに関する情報を取得できません. これに関する機能は使用できません.");
         }
 
-        trfm = transform.Find("TextBox/TextBoxText");
-        if (trfm)
+        if (topTextObject != null && (topTextText = topTextObject.GetComponent<Text>()) != null)
         {
-            textBoxTextObj = trfm.gameObject;
-            textBoxTextText = textBoxTextObj.GetComponent<Text>();
         }
         else
         {
-            Debug.LogWarning("[HUD_MessageManager.Awake] GameObject'TextBoxText'が見つかりません");
+            Debug.LogWarning("HUD_MessageManager.Awake >> TopTextに関する情報を取得できません. これに関する機能は使用できません.");
         }
-
-        trfm = transform.Find("TopText");
-        if (trfm)
+        
+        if (bottomTextObject != null && (bottomTextText = bottomTextObject.GetComponent<Text>()) != null)
         {
-            topTextObj = trfm.gameObject;
-            topTextText = topTextObj.GetComponent<Text>();
         }
         else
         {
-            Debug.LogWarning("[HUD_MessageManager.Awake] GameObject'TopText'が見つかりません");
+            Debug.LogWarning("HUD_MessageManager.Awake >> BottomTextに関する情報を取得できません. これに関する機能は使用できません.");
         }
-
-        trfm = transform.Find("BottomText");
-        if (trfm)
+        
+        if (topLeftTextObject != null && (topLeftTextText = topLeftTextObject.GetComponent<Text>()) != null)
         {
-            bottomTextObj = trfm.gameObject;
-            bottomTextText = bottomTextObj.GetComponent<Text>();
         }
         else
         {
-            Debug.LogWarning("[HUD_MessageManager.Awake] GameObject'BottomText'が見つかりません");
+            Debug.LogWarning("HUD_MessageManager.Awake >> TopLeftTextに関する情報を取得できません. これに関する機能は使用できません.");
         }
-
-        trfm = transform.Find("TopLeftText");
-        if (trfm)
+        
+        if (bottomRightTextObject != null && (bottomRightTextText = bottomRightTextObject.GetComponent<Text>()) != null)
         {
-            topLeftTextObj = trfm.gameObject;
-            topLeftTextText = topLeftTextObj.GetComponent<Text>();
         }
         else
         {
-            Debug.LogWarning("[HUD_MessageManager.Awake] GameObject'TopLeftText'が見つかりません");
-        }
-
-        trfm = transform.Find("BottomRightText");
-        if (trfm)
-        {
-            bottomRightTextObj = trfm.gameObject;
-            bottomRightTextText = bottomRightTextObj.GetComponent<Text>();
-        }
-        else
-        {
-            Debug.LogWarning("[HUD_MessageManager.Awake] GameObject'BottomRightText'が見つかりません");
+            Debug.LogWarning("HUD_MessageManager.Awake >> BottomRightTextに関する情報を取得できません. これに関する機能は使用できません.");
         }
 
         //TextBox非表示
-        textBoxObj.SetActive(false);
+        textBoxObject.SetActive(false);
 
         InvokeRepeating("RearrangeMessageList", 0.0f, 5.0f);
 
         SceneManager.sceneLoaded += OnScenelWasLoaded;
         DontDestroyOnLoad(this);
-        instance = this;
+        Instance = this;
     }
 
     //メッセージ処理
@@ -400,19 +377,19 @@ public class HUD_MessageManager : MonoBehaviour
                 switch (paramPrivate.messageState)
                 {
                     //READY状態
-                    case MESSAGE_STATE.READY:
+                    case MessageState.Ready:
                         break;
 
                     //START状態
-                    case MESSAGE_STATE.START:
+                    case MessageState.Start:
                         switch (param.entranceAnimation)
                         {
-                            case MESSAGE_ENTRANCE.APPEAR:
+                            case MessageEntrance.Appear:
                                 paramPrivate.transparency = 255.0f;
-                                paramPrivate.messageState = MESSAGE_STATE.SHOWING;
+                                paramPrivate.messageState = MessageState.Showing;
                                 break;
 
-                            case MESSAGE_ENTRANCE.FADE:
+                            case MessageEntrance.Fade:
                                 if (param.entranceTime > 0)
                                 {
                                     paramPrivate.transparency += (255.0f / param.entranceTime) * Time.unscaledDeltaTime;
@@ -425,23 +402,23 @@ public class HUD_MessageManager : MonoBehaviour
                                 if (paramPrivate.transparency >= 255.0f)
                                 {
                                     paramPrivate.transparency = 255.0f;
-                                    paramPrivate.messageState = MESSAGE_STATE.SHOWING;
+                                    paramPrivate.messageState = MessageState.Showing;
                                 }
                                 break;
                         }
                         break;
 
                     //TO_END状態
-                    case MESSAGE_STATE.TO_END:
+                    case MessageState.ToEnd:
                         switch (param.exitAnimation)
                         {
-                            case MESSAGE_EXIT.DISAPPEAR:
+                            case MessageExit.Disappear:
                                 paramPrivate.transparency = 0.0f;
-                                paramPrivate.messageState = MESSAGE_STATE.END;
+                                paramPrivate.messageState = MessageState.End;
                                 paramPrivate.isPlaying = false;
                                 break;
 
-                            case MESSAGE_EXIT.FADE:
+                            case MessageExit.Fade:
                                 if (param.exitTime > 0)
                                 {
                                     paramPrivate.transparency -= (255.0f / param.exitTime) * Time.unscaledDeltaTime;
@@ -454,7 +431,7 @@ public class HUD_MessageManager : MonoBehaviour
                                 if (paramPrivate.transparency <= 0.0f)
                                 {
                                     paramPrivate.transparency = 0.0f;
-                                    paramPrivate.messageState = MESSAGE_STATE.END;
+                                    paramPrivate.messageState = MessageState.End;
                                     paramPrivate.isPlaying = false;
                                 }
                                 break;
@@ -462,13 +439,13 @@ public class HUD_MessageManager : MonoBehaviour
                         break;
 
                     //SHOWNING状態
-                    case MESSAGE_STATE.SHOWING:
+                    case MessageState.Showing:
                         switch (paramPrivate.messageMode)
                         {
-                            case MESSAGE_MODE.NORMAL:
+                            case MessageMode.Normal:
                                 break;
 
-                            case MESSAGE_MODE.TIMER:
+                            case MessageMode.Timer:
                                 if (Time.unscaledTime - paramPrivate.messageStartTime > param.displayTime)
                                 {
                                     Exit(i);
@@ -478,8 +455,8 @@ public class HUD_MessageManager : MonoBehaviour
                         break;
 
                     //END状態
-                    case MESSAGE_STATE.END:
-                        if (param.idType == ID_TYPE.NORMAL)
+                    case MessageState.End:
+                        if (param.idType == IdType.Normal)
                         {
                             paramPrivate.activated = false;
                         }
@@ -488,7 +465,7 @@ public class HUD_MessageManager : MonoBehaviour
                             paramPrivate.activated = true;
                         }
 
-                        paramPrivate.messageState = MESSAGE_STATE.READY;
+                        paramPrivate.messageState = MessageState.Ready;
                         break;
                 }
             }
@@ -529,7 +506,7 @@ public class HUD_MessageManager : MonoBehaviour
                     text += "</color>\n";
                     text = text.Replace("{a}", transparencyInt.ToString("X2"));
 
-                    if (paramPrivate.messageType == MESSAGE_TYPE.BOX)
+                    if (paramPrivate.messageType == MessageType.Box)
                     {
                         textBoxSwitch = true;
                     }
@@ -539,36 +516,36 @@ public class HUD_MessageManager : MonoBehaviour
             //各描画位置へメッセージを代入
             switch (paramPrivate.messageType)
             {
-                case MESSAGE_TYPE.CENTER:
+                case MessageType.Center:
                     centerText += text;
                     break;
 
-                case MESSAGE_TYPE.BOX:
+                case MessageType.Box:
                     textBoxText += text;
                     break;
 
-                case MESSAGE_TYPE.TOP:
+                case MessageType.Top:
                     topText += text;
                     break;
 
-                case MESSAGE_TYPE.BOTTOM:
+                case MessageType.Bottom:
                     bottomText += text;
                     break;
 
-                case MESSAGE_TYPE.TOP_LEFT:
+                case MessageType.TopLeft:
                     topLeftText += text;
                     break;
 
-                case MESSAGE_TYPE.BOTTOM_RIGHT:
+                case MessageType.BottomRight:
                     bottomRightText += text;
                     break;
             }
         }
 
         //テキストボックス表示,非表示設定
-        if (textBoxSwitch ^ textBoxObj.activeSelf)
+        if (textBoxSwitch ^ textBoxObject.activeSelf)
         {
-            textBoxObj.SetActive(textBoxSwitch);
+            textBoxObject.SetActive(textBoxSwitch);
         }
 
         //コンポーネント"Text"に文字列を格納
@@ -661,7 +638,7 @@ public class HUD_MessageManager : MonoBehaviour
     /// <param name="mode"></param>
     /// <param name="messageParam"></param>
     /// <returns></returns>
-    public int Set(string text, MESSAGE_TYPE type, MESSAGE_MODE mode, Param messageParam)
+    public int Set(string text, MessageType type, MessageMode mode, Param messageParam)
     {
         int i;
         ParamPrivate paramPrivate;
@@ -670,7 +647,7 @@ public class HUD_MessageManager : MonoBehaviour
 
         paramPrivate.activated = true;
         paramPrivate.isPlaying = false;
-        paramPrivate.messageState = MESSAGE_STATE.READY;
+        paramPrivate.messageState = MessageState.Ready;
         paramPrivate.text = text;
         paramPrivate.messageStartTime = 0.0f;
         paramPrivate.messageMode = mode;
@@ -699,16 +676,16 @@ public class HUD_MessageManager : MonoBehaviour
     //      そのメッセージはCenterTextに表示されます
     //      Alert関係メッセージ設定の基本関数です
     //
-    public int SetAlert(string text, float entranceTime, float displayTime, float exitTime, ID_TYPE idType)
+    public int SetAlert(string text, float entranceTime, float displayTime, float exitTime, IdType idType)
     {
         Param param = new Param();
-        param.entranceAnimation = MESSAGE_ENTRANCE.FADE;
-        param.exitAnimation = MESSAGE_EXIT.FADE;
+        param.entranceAnimation = MessageEntrance.Fade;
+        param.exitAnimation = MessageExit.Fade;
         param.entranceTime = entranceTime;
         param.displayTime = displayTime;
         param.exitTime = exitTime;
         param.idType = idType;
-        return Set(text, MESSAGE_TYPE.CENTER, MESSAGE_MODE.TIMER, param);
+        return Set(text, MessageType.Center, MessageMode.Timer, param);
     }
 
     //文字と時間を引数にとる
@@ -722,7 +699,7 @@ public class HUD_MessageManager : MonoBehaviour
     /// <returns></returns>
     public int SetAlert(string text, float entranceTime, float displayTime, float exitTime)
     {
-        return SetAlert(text, entranceTime, displayTime, exitTime, ID_TYPE.NORMAL);
+        return SetAlert(text, entranceTime, displayTime, exitTime, IdType.Normal);
     }
 
     /// <summary>
@@ -749,11 +726,11 @@ public class HUD_MessageManager : MonoBehaviour
     {
         if (dontDeleteOnLoad)
         {
-            return SetAlert(text, entranceTime, displayTime, exitTime, ID_TYPE.DONT_DELETE_ON_LOAD);
+            return SetAlert(text, entranceTime, displayTime, exitTime, IdType.DontDeleteOnLoad);
         }
         else
         {
-            return SetAlert(text, entranceTime, displayTime, exitTime, ID_TYPE.KEEP_ID_BUT_DELETE_ON_LOAD);
+            return SetAlert(text, entranceTime, displayTime, exitTime, IdType.keepIdButDeleteOnLoad);
         }
     }
 
@@ -809,7 +786,7 @@ public class HUD_MessageManager : MonoBehaviour
     {
         return SetAlertKeepID(text, defaultEntranceTime, defaultDisplayTime, defaultExitTime, false);
     }
-    
+
     /// <summary>
     /// メッセージを設定します
     ///      そのメッセージはTopTextに表示されます
@@ -818,30 +795,30 @@ public class HUD_MessageManager : MonoBehaviour
     /// <param name="text"></param>
     /// <param name="idType"></param>
     /// <returns></returns>
-    public int SetSubtitleTop(string text, ID_TYPE idType)
+    public int SetSubtitleTop(string text, IdType idType)
     {
         Param param = new Param();
-        param.entranceAnimation = MESSAGE_ENTRANCE.APPEAR;
-        param.exitAnimation = MESSAGE_EXIT.DISAPPEAR;
+        param.entranceAnimation = MessageEntrance.Appear;
+        param.exitAnimation = MessageExit.Disappear;
         param.idType = idType;
-        return Set(text, MESSAGE_TYPE.TOP, MESSAGE_MODE.NORMAL, param);
+        return Set(text, MessageType.Top, MessageMode.Normal, param);
     }
 
     //文字のみを引数にとる
     public int SetSubtitleTop(string text)
     {
-        return SetSubtitleTop(text, ID_TYPE.NORMAL);
+        return SetSubtitleTop(text, IdType.Normal);
     }
 
     public int SetSubtitleTopKeepID(string text, bool dontDeleteOnLoad)
     {
         if (dontDeleteOnLoad)
         {
-            return SetSubtitleTop(text, ID_TYPE.DONT_DELETE_ON_LOAD);
+            return SetSubtitleTop(text, IdType.DontDeleteOnLoad);
         }
         else
         {
-            return SetSubtitleTop(text, ID_TYPE.KEEP_ID_BUT_DELETE_ON_LOAD);
+            return SetSubtitleTop(text, IdType.keepIdButDeleteOnLoad);
         }
     }
 
@@ -849,7 +826,7 @@ public class HUD_MessageManager : MonoBehaviour
     {
         return SetSubtitleTopKeepID(text, false);
     }
-    
+
     /// <summary>
     /// 
     ///      メッセージを設定します
@@ -863,22 +840,22 @@ public class HUD_MessageManager : MonoBehaviour
     /// <param name="exitTime"></param>
     /// <param name="idType"></param>
     /// <returns></returns>
-    public int SetSubtitleTopTimer(string text, float entranceTime, float displayTime, float exitTime, ID_TYPE idType)
+    public int SetSubtitleTopTimer(string text, float entranceTime, float displayTime, float exitTime, IdType idType)
     {
         Param param = new Param();
-        param.entranceAnimation = MESSAGE_ENTRANCE.APPEAR;
-        param.exitAnimation = MESSAGE_EXIT.DISAPPEAR;
+        param.entranceAnimation = MessageEntrance.Appear;
+        param.exitAnimation = MessageExit.Disappear;
         param.entranceTime = entranceTime;
         param.displayTime = displayTime;
         param.exitTime = exitTime;
         param.idType = idType;
-        return Set(text, MESSAGE_TYPE.TOP, MESSAGE_MODE.TIMER, param);
+        return Set(text, MessageType.Top, MessageMode.Timer, param);
     }
 
     //文字と時間を引数にとる
     public int SetSubtitleTopTimer(string text, float entranceTime, float displayTime, float exitTime)
     {
-        return SetSubtitleTopTimer(text, entranceTime, displayTime, exitTime, ID_TYPE.NORMAL);
+        return SetSubtitleTopTimer(text, entranceTime, displayTime, exitTime, IdType.Normal);
     }
     public int SetSubtitleTopTimer(string text, float displayTime)
     {
@@ -889,11 +866,11 @@ public class HUD_MessageManager : MonoBehaviour
     {
         if (dontDeleteOnLoad)
         {
-            return SetSubtitleTopTimer(text, entranceTime, displayTime, exitTime, ID_TYPE.DONT_DELETE_ON_LOAD);
+            return SetSubtitleTopTimer(text, entranceTime, displayTime, exitTime, IdType.DontDeleteOnLoad);
         }
         else
         {
-            return SetSubtitleTopTimer(text, entranceTime, displayTime, exitTime, ID_TYPE.KEEP_ID_BUT_DELETE_ON_LOAD);
+            return SetSubtitleTopTimer(text, entranceTime, displayTime, exitTime, IdType.keepIdButDeleteOnLoad);
         }
     }
     public int SetSubtitleTopTimerKeepID(string text, float displayTime, bool dontDeleteOnLoad)
@@ -933,30 +910,30 @@ public class HUD_MessageManager : MonoBehaviour
     //      そのメッセージはBottomTextに表示されます
     //      SubtitleBottom関係メッセージ設定の基本関数です
     //
-    public int SetSubtitleBottom(string text, ID_TYPE idType)
+    public int SetSubtitleBottom(string text, IdType idType)
     {
         Param param = new Param();
-        param.entranceAnimation = MESSAGE_ENTRANCE.APPEAR;
-        param.exitAnimation = MESSAGE_EXIT.DISAPPEAR;
+        param.entranceAnimation = MessageEntrance.Appear;
+        param.exitAnimation = MessageExit.Disappear;
         param.idType = idType;
-        return Set(text, MESSAGE_TYPE.BOTTOM, MESSAGE_MODE.NORMAL, param);
+        return Set(text, MessageType.Bottom, MessageMode.Normal, param);
     }
 
     //文字のみを引数にとる
     public int SetSubtitleBottom(string text)
     {
-        return SetSubtitleBottom(text, ID_TYPE.NORMAL);
+        return SetSubtitleBottom(text, IdType.Normal);
     }
 
     public int SetSubtitleBottomKeepID(string text, bool dontDeleteOnLoad)
     {
         if (dontDeleteOnLoad)
         {
-            return SetSubtitleBottom(text, ID_TYPE.DONT_DELETE_ON_LOAD);
+            return SetSubtitleBottom(text, IdType.DontDeleteOnLoad);
         }
         else
         {
-            return SetSubtitleBottom(text, ID_TYPE.KEEP_ID_BUT_DELETE_ON_LOAD);
+            return SetSubtitleBottom(text, IdType.keepIdButDeleteOnLoad);
         }
     }
 
@@ -973,22 +950,22 @@ public class HUD_MessageManager : MonoBehaviour
     //      TimerModeで動作します
     //      SubtitleBottomTimer関係メッセージ設定の基本関数です
     //
-    public int SetSubtitleBottomTimer(string text, float entranceTime, float displayTime, float exitTime, ID_TYPE idType)
+    public int SetSubtitleBottomTimer(string text, float entranceTime, float displayTime, float exitTime, IdType idType)
     {
         Param param = new Param();
-        param.entranceAnimation = MESSAGE_ENTRANCE.APPEAR;
-        param.exitAnimation = MESSAGE_EXIT.DISAPPEAR;
+        param.entranceAnimation = MessageEntrance.Appear;
+        param.exitAnimation = MessageExit.Disappear;
         param.entranceTime = entranceTime;
         param.displayTime = displayTime;
         param.exitTime = exitTime;
         param.idType = idType;
-        return Set(text, MESSAGE_TYPE.BOTTOM, MESSAGE_MODE.TIMER, param);
+        return Set(text, MessageType.Bottom, MessageMode.Timer, param);
     }
 
     //文字と時間を引数にとる
     public int SetSubtitleBottomTimer(string text, float entranceTime, float displayTime, float exitTime)
     {
-        return SetSubtitleBottomTimer(text, entranceTime, displayTime, exitTime, ID_TYPE.NORMAL);
+        return SetSubtitleBottomTimer(text, entranceTime, displayTime, exitTime, IdType.Normal);
     }
     public int SetSubtitleBottomTimer(string text, float displayTime)
     {
@@ -999,11 +976,11 @@ public class HUD_MessageManager : MonoBehaviour
     {
         if (dontDeleteOnLoad)
         {
-            return SetSubtitleBottomTimer(text, entranceTime, displayTime, exitTime, ID_TYPE.DONT_DELETE_ON_LOAD);
+            return SetSubtitleBottomTimer(text, entranceTime, displayTime, exitTime, IdType.DontDeleteOnLoad);
         }
         else
         {
-            return SetSubtitleBottomTimer(text, entranceTime, displayTime, exitTime, ID_TYPE.KEEP_ID_BUT_DELETE_ON_LOAD);
+            return SetSubtitleBottomTimer(text, entranceTime, displayTime, exitTime, IdType.keepIdButDeleteOnLoad);
         }
     }
     public int SetSubtitleBottomTimerKeepID(string text, float displayTime, bool dontDeleteOnLoad)
@@ -1035,7 +1012,7 @@ public class HUD_MessageManager : MonoBehaviour
     {
         return SetSubtitleBottomTimerKeepID(text, defaultEntranceTime, defaultDisplayTime, defaultExitTime, false);
     }
-    
+
     /// <summary>
     /// メッセージを設定します
     ///      そのメッセージはTopLeftTextに表示されます
@@ -1047,16 +1024,16 @@ public class HUD_MessageManager : MonoBehaviour
     /// <param name="exitTime"></param>
     /// <param name="idType"></param>
     /// <returns></returns>
-    public int SetMemoTopLeft(string text, float entranceTime, float displayTime, float exitTime, ID_TYPE idType)
+    public int SetMemoTopLeft(string text, float entranceTime, float displayTime, float exitTime, IdType idType)
     {
         Param param = new Param();
-        param.entranceAnimation = MESSAGE_ENTRANCE.FADE;
-        param.exitAnimation = MESSAGE_EXIT.FADE;
+        param.entranceAnimation = MessageEntrance.Fade;
+        param.exitAnimation = MessageExit.Fade;
         param.entranceTime = entranceTime;
         param.displayTime = displayTime;
         param.exitTime = exitTime;
         param.idType = idType;
-        return Set(text, MESSAGE_TYPE.TOP_LEFT, MESSAGE_MODE.TIMER, param);
+        return Set(text, MessageType.TopLeft, MessageMode.Timer, param);
     }
 
     //文字と時間を引数にとる
@@ -1070,7 +1047,7 @@ public class HUD_MessageManager : MonoBehaviour
     /// <returns></returns>
     public int SetMemoTopLeft(string text, float entranceTime, float displayTime, float exitTime)
     {
-        return SetMemoTopLeft(text, entranceTime, displayTime, exitTime, ID_TYPE.NORMAL);
+        return SetMemoTopLeft(text, entranceTime, displayTime, exitTime, IdType.Normal);
     }
     public int SetMemoTopLeft(string text, float displayTime)
     {
@@ -1081,11 +1058,11 @@ public class HUD_MessageManager : MonoBehaviour
     {
         if (dontDeleteOnLoad)
         {
-            return SetMemoTopLeft(text, entranceTime, displayTime, exitTime, ID_TYPE.DONT_DELETE_ON_LOAD);
+            return SetMemoTopLeft(text, entranceTime, displayTime, exitTime, IdType.DontDeleteOnLoad);
         }
         else
         {
-            return SetMemoTopLeft(text, entranceTime, displayTime, exitTime, ID_TYPE.KEEP_ID_BUT_DELETE_ON_LOAD);
+            return SetMemoTopLeft(text, entranceTime, displayTime, exitTime, IdType.keepIdButDeleteOnLoad);
         }
     }
     public int SetMemoTopLeftKeepID(string text, float displayTime, bool dontDeleteOnLoad)
@@ -1117,7 +1094,7 @@ public class HUD_MessageManager : MonoBehaviour
     {
         return SetMemoTopLeftKeepID(text, false);
     }
-    
+
     /// <summary>
     /// 
     ///     メッセージを設定します
@@ -1130,22 +1107,22 @@ public class HUD_MessageManager : MonoBehaviour
     /// <param name="exitTime"></param>
     /// <param name="idType"></param>
     /// <returns></returns>
-    public int SetMemoBottomRight(string text, float entranceTime, float displayTime, float exitTime, ID_TYPE idType)
+    public int SetMemoBottomRight(string text, float entranceTime, float displayTime, float exitTime, IdType idType)
     {
         Param param = new Param();
-        param.entranceAnimation = MESSAGE_ENTRANCE.FADE;
-        param.exitAnimation = MESSAGE_EXIT.FADE;
+        param.entranceAnimation = MessageEntrance.Fade;
+        param.exitAnimation = MessageExit.Fade;
         param.entranceTime = entranceTime;
         param.displayTime = displayTime;
         param.exitTime = exitTime;
         param.idType = idType;
-        return Set(text, MESSAGE_TYPE.BOTTOM_RIGHT, MESSAGE_MODE.TIMER, param);
+        return Set(text, MessageType.BottomRight, MessageMode.Timer, param);
     }
 
     //文字と時間を引数にとる
     public int SetMemoBottomRight(string text, float entranceTime, float displayTime, float exitTime)
     {
-        return SetMemoBottomRight(text, entranceTime, displayTime, exitTime, ID_TYPE.NORMAL);
+        return SetMemoBottomRight(text, entranceTime, displayTime, exitTime, IdType.Normal);
     }
     public int SetMemoBottomRight(string text, float displayTime)
     {
@@ -1156,11 +1133,11 @@ public class HUD_MessageManager : MonoBehaviour
     {
         if (dontDeleteOnLoad)
         {
-            return SetMemoBottomRight(text, entranceTime, displayTime, exitTime, ID_TYPE.DONT_DELETE_ON_LOAD);
+            return SetMemoBottomRight(text, entranceTime, displayTime, exitTime, IdType.DontDeleteOnLoad);
         }
         else
         {
-            return SetMemoBottomRight(text, entranceTime, displayTime, exitTime, ID_TYPE.KEEP_ID_BUT_DELETE_ON_LOAD);
+            return SetMemoBottomRight(text, entranceTime, displayTime, exitTime, IdType.keepIdButDeleteOnLoad);
         }
     }
     public int SetMemoBottomRightKeepID(string text, float displayTime, bool dontDeleteOnLoad)
@@ -1213,7 +1190,7 @@ public class HUD_MessageManager : MonoBehaviour
 
         paramPrivate.isPlaying = true;
         paramPrivate.messageStartTime = Time.unscaledTime;
-        paramPrivate.messageState = MESSAGE_STATE.START;
+        paramPrivate.messageState = MessageState.Start;
         paramPrivate.transparency = 0.0f;
 
         return;
@@ -1364,7 +1341,7 @@ public class HUD_MessageManager : MonoBehaviour
         ParamPrivate paramPrivate = messageList[id].paramPrivate;
         if (paramPrivate.isPlaying)
         {
-            paramPrivate.messageState = MESSAGE_STATE.TO_END;
+            paramPrivate.messageState = MessageState.ToEnd;
         }
 
     }
